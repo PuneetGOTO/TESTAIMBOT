@@ -257,12 +257,29 @@ local function CreateUI()
     local AimbotUI = Instance.new("ScreenGui")
     AimbotUI.Name = "AimbotUI"
     
+    -- 创建一个小型的显示/隐藏按钮
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0, 40, 0, 40)
+    ToggleButton.Position = UDim2.new(0, 20, 0, 20)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.Text = "A"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 18
+    ToggleButton.Font = Enum.Font.SourceSansBold
+    ToggleButton.Parent = AimbotUI
+    
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 20)
+    ToggleCorner.Parent = ToggleButton
+    
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 300, 0, 400)
     MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
     MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     MainFrame.BorderSizePixel = 0
+    MainFrame.Visible = false  -- 默认隐藏主界面
     
     local TitleBar = Instance.new("Frame")
     TitleBar.Name = "TitleBar"
@@ -271,9 +288,20 @@ local function CreateUI()
     TitleBar.BorderSizePixel = 0
     TitleBar.Parent = MainFrame
     
+    -- 添加关闭按钮
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 30, 0, 30)
+    CloseButton.Position = UDim2.new(1, -35, 0, 5)
+    CloseButton.BackgroundTransparency = 1
+    CloseButton.Text = "×"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.TextSize = 24
+    CloseButton.Font = Enum.Font.SourceSansBold
+    CloseButton.Parent = TitleBar
+    
     local Title = Instance.new("TextLabel")
     Title.Name = "Title"
-    Title.Size = UDim2.new(1, -10, 1, 0)
+    Title.Size = UDim2.new(1, -50, 1, 0)  -- 调整大小以适应关闭按钮
     Title.Position = UDim2.new(0, 10, 0, 0)
     Title.BackgroundTransparency = 1
     Title.Text = "Aimbot Settings"
@@ -382,42 +410,52 @@ local function CreateUI()
         UpdateESPButton()
     end)
     
-    -- Make the window draggable
-    local dragging
-    local dragInput
-    local dragStart
-    local startPos
+    -- 让 ToggleButton 可拖动
+    local toggleDragging
+    local toggleDragInput
+    local toggleDragStart
+    local toggleStartPos
     
-    TitleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
+    local function updateTogglePosition(input)
+        local delta = input.Position - toggleDragStart
+        ToggleButton.Position = UDim2.new(toggleStartPos.X.Scale, toggleStartPos.X.Offset + delta.X, toggleStartPos.Y.Scale, toggleStartPos.Y.Offset + delta.Y)
+    end
+    
+    ToggleButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then  -- 右键拖动
+            toggleDragging = true
+            toggleDragStart = input.Position
+            toggleStartPos = ToggleButton.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    toggleDragging = false
+                end
+            end)
         end
     end)
     
-    TitleBar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    
-    TitleBar.InputChanged:Connect(function(input)
+    ToggleButton.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
+            toggleDragInput = input
         end
     end)
     
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        if input == toggleDragInput and toggleDragging then
+            updateTogglePosition(input)
         end
     end)
     
-    -- Initialize button states
-    UpdateTeamCheckButton()
-    UpdateESPButton()
+    -- 添加显示/隐藏功能
+    ToggleButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = not MainFrame.Visible
+    end)
+    
+    -- 关闭按钮功能
+    CloseButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = false
+    end)
     
     -- Parent the UI
     pcall(function()
