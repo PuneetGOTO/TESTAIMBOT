@@ -2,7 +2,37 @@
 -- 在脚本开始处添加调试输出
 print("Starting Aimbot UI initialization...")
 
---// Cache
+--// Cache and API Check
+local function CheckSupport()
+    local supported = true
+    local missing = {}
+    
+    if not mousemoverel and (not Input or not Input.MouseMove) then
+        supported = false
+        table.insert(missing, "MouseMove API")
+    end
+    
+    if not Drawing then
+        supported = false
+        table.insert(missing, "Drawing API")
+    end
+    
+    return supported, missing
+end
+
+local isSupported, missingFeatures = CheckSupport()
+if not isSupported then
+    local errorMsg = "Aimbot cannot run - Missing required features: " .. table.concat(missingFeatures, ", ")
+    if game:GetService("StarterGui") then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Aimbot Error",
+            Text = errorMsg,
+            Duration = 10
+        })
+    end
+    warn(errorMsg)
+    return
+end
 
 local select = select
 local pcall, getgenv, next, Vector2, mathclamp, type, mousemoverel = select(1, pcall, getgenv, next, Vector2.new, math.clamp, type, mousemoverel or (Input and Input.MouseMove))
@@ -37,12 +67,12 @@ Environment.Settings = {
 	Enabled = true,
 	TeamCheck = false,
 	AimPart = "Head",  -- 默认瞄准头部
-	LockPart = "Head", -- 同步瞄准部位
+	ValidParts = {"Head", "UpperTorso", "LowerTorso", "HumanoidRootPart", "RightFoot", "LeftFoot"},  -- 有效的瞄准部位
 	AliveCheck = true,
-	WallCheck = false, -- Laggy
-	Sensitivity = 0, -- Animation length (in seconds) before fully locking onto target
-	ThirdPerson = false, -- Uses mousemoverel instead of CFrame to support third person
-	ThirdPersonSensitivity = 3, -- Boundary: 0.1 - 5
+	WallCheck = false,
+	Sensitivity = 0,
+	ThirdPerson = false,
+	ThirdPersonSensitivity = 3,
 	TriggerKey = "MouseButton2",
 	Toggle = false,
 	Prediction = {
@@ -71,24 +101,48 @@ local function CancelLock()
 	Environment.Locked = nil
 	if Animation then Animation:Cancel() end
 	Environment.FOVCircle.Color = Environment.FOVSettings.Color
+	print("Aimbot lock cancelled")
 end
 
 local function GetClosestPlayerToCursor()
     local closestPlayer = nil
-    local shortestDistance = math.huge
+    local shortestDistance = Environment.FOVSettings.Amount
+    local mousePos = UserInputService:GetMouseLocation()
     
-    for i, v in pairs(game:GetService("Players"):GetPlayers()) do
-        if v ~= game:GetService("Players").LocalPlayer then
-            if v.Character and v.Character:FindFirstChild(Environment.Settings.AimPart) then
-                if Environment.Settings.TeamCheck and v.TeamColor == game:GetService("Players").LocalPlayer.TeamColor then
-                    -- Skip teammates
-                else
-                    local pos = camera:WorldToViewportPoint(v.Character[Environment.Settings.AimPart].Position)
-                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).magnitude
-                    
-                    if magnitude < shortestDistance then
-                        closestPlayer = v
-                        shortestDistance = magnitude
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer then
+            -- 检查角色和目标部位是否存在
+            if v.Character then
+                local targetPart = v.Character:FindFirstChild(Environment.Settings.AimPart)
+                if not targetPart then
+                    -- 如果当前瞄准部位不存在，尝试使用HumanoidRootPart作为备选
+                    targetPart = v.Character:FindFirstChild("HumanoidRootPart")
+                end
+                
+                if targetPart then
+                    -- Team Check
+                    if not Environment.Settings.TeamCheck or v.Team ~= LocalPlayer.Team then
+                        -- Alive Check
+                        if not Environment.Settings.AliveCheck or (v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0) then
+                            local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                            
+                            if onScreen then
+                                local magnitude = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                                
+                                -- Wall Check
+                                local canSee = true
+                                if Environment.Settings.WallCheck then
+                                    local ray = Ray.new(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * 2000)
+                                    local hit = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, v.Character})
+                                    canSee = not hit
+                                end
+                                
+                                if magnitude < shortestDistance and canSee then
+                                    closestPlayer = v
+                                    shortestDistance = magnitude
+                                end
+                            end
+                        end
                     end
                 end
             end
@@ -221,7 +275,7 @@ function Environment.Functions:ResetSettings()
 		Enabled = true,
 		TeamCheck = false,
 		AimPart = "Head",  -- 默认瞄准头部
-		LockPart = "Head", -- 同步瞄准部位
+		ValidParts = {"Head", "UpperTorso", "LowerTorso", "HumanoidRootPart", "RightFoot", "LeftFoot"},  -- 有效的瞄准部位
 		AliveCheck = true,
 		WallCheck = false,
 		Sensitivity = 0,
@@ -246,6 +300,17 @@ function Environment.Functions:ResetSettings()
 		Thickness = 1,
 		Filled = false
 	}
+end
+
+function Environment.Functions:SetAimPart(newPart)
+    if table.find(Environment.Settings.ValidParts, newPart) then
+        Environment.Settings.AimPart = newPart
+        print("瞄准部位已切换到: " .. newPart)
+        return true
+    else
+        warn("无效的瞄准部位: " .. newPart)
+        return false
+    end
 end
 
 --// Load
@@ -460,8 +525,7 @@ local function CreateUI()
     
     local function UpdateAimPartButton()
         local currentPart = aimParts[currentAimPartIndex]
-        Environment.Settings.AimPart = currentPart
-        Environment.Settings.LockPart = currentPart  -- 同步更新LockPart
+        Environment.Functions:SetAimPart(currentPart)
         AimPartButton.Text = aimPartNames[currentPart]
     end
     
