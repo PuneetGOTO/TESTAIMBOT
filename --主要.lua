@@ -36,6 +36,7 @@ local RequiredDistance, Typing, Running, Animation, ServiceConnections = 2000, f
 Environment.Settings = {
 	Enabled = true,
 	TeamCheck = false,
+	AimPart = "Head",  -- 默认瞄准头部
 	AliveCheck = true,
 	WallCheck = false, -- Laggy
 	Sensitivity = 0, -- Animation length (in seconds) before fully locking onto target
@@ -225,6 +226,7 @@ function Environment.Functions:ResetSettings()
 	Environment.Settings = {
 		Enabled = true,
 		TeamCheck = false,
+		AimPart = "Head",  -- 默认瞄准头部
 		AliveCheck = true,
 		WallCheck = false,
 		Sensitivity = 0,
@@ -423,6 +425,52 @@ local function CreateUI()
     ESPButton.Font = Enum.Font.SourceSansBold
     ESPButton.Parent = ESPFrame
     
+    -- Add AimPart Toggle
+    local AimPartFrame = Instance.new("Frame")
+    AimPartFrame.Name = "AimPartFrame"
+    AimPartFrame.Size = UDim2.new(1, 0, 0, 30)
+    AimPartFrame.Position = UDim2.new(0, 0, 0, 120)  -- 放在ESP按钮下面
+    AimPartFrame.BackgroundTransparency = 1
+    AimPartFrame.Parent = Content
+    
+    local AimPartLabel = Instance.new("TextLabel")
+    AimPartLabel.Name = "AimPartLabel"
+    AimPartLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    AimPartLabel.BackgroundTransparency = 1
+    AimPartLabel.Text = "瞄准部位"
+    AimPartLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AimPartLabel.TextSize = 14
+    AimPartLabel.Font = Enum.Font.SourceSans
+    AimPartLabel.TextXAlignment = Enum.TextXAlignment.Left
+    AimPartLabel.Parent = AimPartFrame
+    
+    local AimPartButton = Instance.new("TextButton")
+    AimPartButton.Name = "AimPartButton"
+    AimPartButton.Size = UDim2.new(0.3, -10, 1, -10)
+    AimPartButton.Position = UDim2.new(0.7, 0, 0, 5)
+    AimPartButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
+    AimPartButton.Text = "头"
+    AimPartButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AimPartButton.TextSize = 14
+    AimPartButton.Font = Enum.Font.SourceSansBold
+    AimPartButton.Parent = AimPartFrame
+    
+    -- 添加身体部位切换功能
+    local aimParts = {"Head", "UpperTorso", "LowerTorso"}
+    local aimPartNames = {Head = "头", UpperTorso = "身", LowerTorso = "脚"}
+    local currentAimPartIndex = 1
+    
+    local function UpdateAimPartButton()
+        local currentPart = aimParts[currentAimPartIndex]
+        Environment.Settings.AimPart = currentPart
+        AimPartButton.Text = aimPartNames[currentPart]
+    end
+    
+    AimPartButton.MouseButton1Click:Connect(function()
+        currentAimPartIndex = (currentAimPartIndex % #aimParts) + 1
+        UpdateAimPartButton()
+    end)
+    
     -- 让 ToggleButton 可拖动
     local toggleDragging
     local toggleDragInput
@@ -523,6 +571,7 @@ local function CreateUI()
     UpdateAimbotButton()
     UpdateTeamCheckButton()
     UpdateESPButton()
+    UpdateAimPartButton()
     
     -- Parent the UI
     pcall(function()
@@ -694,6 +743,32 @@ elseif Errored and not Success then
     TestService:Message("The ESP script has errored, please notify Exunys with the following information :")
     warn(Errored)
     print("!! IF THE ERROR IS A FALSE POSITIVE (says that a player cannot be found) THEN DO NOT BOTHER !!")
+end
+
+--// GetClosestPlayer函数
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for i, v in pairs(game:GetService("Players"):GetPlayers()) do
+        if v ~= game:GetService("Players").LocalPlayer then
+            if v.Character and v.Character:FindFirstChild(Environment.Settings.AimPart) then
+                if Environment.Settings.TeamCheck and v.TeamColor == game:GetService("Players").LocalPlayer.TeamColor then
+                    -- 跳过队友
+                else
+                    local pos = camera:WorldToViewportPoint(v.Character[Environment.Settings.AimPart].Position)
+                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).magnitude
+                    
+                    if magnitude < shortestDistance then
+                        closestPlayer = v
+                        shortestDistance = magnitude
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
 end
 
 --请勿盗窃Lorain作品，谢谢😍
