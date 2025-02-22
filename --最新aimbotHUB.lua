@@ -1,18 +1,20 @@
 --最新aimbotHUB
 --[[
-
-	AirHub V2 by Exunys CC0 1.0 Universal (2023)
-	https://github.com/Exunys
-
+    AirHub V2 - Modern UI with Integrated ESP and Aimbot
+    By Exunys & PuneetGOTO
 ]]
 
 --// Loaded Check
 
 if AirHubV2Loaded or AirHubV2Loading or AirHub then
-	return
+    return
 end
 
 getgenv().AirHubV2Loading = true
+
+--// Load Dependencies
+local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/PuneetGOTO/TESTAIMBOT/master/--ESP库.lua"))()
+local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/PuneetGOTO/TESTAIMBOT/master/--aimbot文件.lua"))()
 
 --// Cache
 
@@ -30,52 +32,6 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-
---// ESP Component
-local ESP = {
-    Settings = {
-        Enabled = false,
-        TeamCheck = false,
-        AliveCheck = true,
-        BoxEnabled = true,
-        TracerEnabled = true,
-        NameEnabled = true,
-        HealthEnabled = true,
-        Distance = 2000
-    },
-    
-    Properties = {
-        BoxColor = Color3.fromRGB(255, 255, 255),
-        TracerColor = Color3.fromRGB(255, 255, 255),
-        NameColor = Color3.fromRGB(255, 255, 255),
-        HealthColor = Color3.fromRGB(0, 255, 0),
-        BoxThickness = 1,
-        TracerThickness = 1,
-        TextSize = 14
-    }
-}
-
---// Aimbot Component
-local Aimbot = {
-    Settings = {
-        Enabled = false,
-        TeamCheck = false,
-        AliveCheck = true,
-        WallCheck = false,
-        Sensitivity = 1,
-        FieldOfView = 90,
-        TargetPart = "Head",
-        TriggerKey = Enum.UserInputType.MouseButton2,
-        Toggle = false
-    },
-    
-    Properties = {
-        FOVColor = Color3.fromRGB(255, 255, 255),
-        FOVThickness = 1,
-        FOVTransparency = 0.7,
-        LockedColor = Color3.fromRGB(255, 150, 150)
-    }
-}
 
 --// Core Functions
 local function GetCharacter(player)
@@ -96,99 +52,6 @@ local function GetPartPosition(part)
     return Vector2.new(position.X, position.Y), visible and position.Z > 0
 end
 
---// ESP Functions
-local function DrawBox(player)
-    if not ESP.Settings.BoxEnabled then return end
-    
-    local character = GetCharacter(player)
-    if not character then return end
-    
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local position, visible = GetPartPosition(hrp)
-    if not visible then return end
-    
-    local box = Drawing.new("Square")
-    box.Visible = true
-    box.Color = ESP.Properties.BoxColor
-    box.Thickness = ESP.Properties.BoxThickness
-    box.Size = Vector2.new(40, 60)
-    box.Position = position - box.Size/2
-    
-    return box
-end
-
-local function DrawTracer(player)
-    if not ESP.Settings.TracerEnabled then return end
-    
-    local character = GetCharacter(player)
-    if not character then return end
-    
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local position, visible = GetPartPosition(hrp)
-    if not visible then return end
-    
-    local tracer = Drawing.new("Line")
-    tracer.Visible = true
-    tracer.Color = ESP.Properties.TracerColor
-    tracer.Thickness = ESP.Properties.TracerThickness
-    tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
-    tracer.To = position
-    
-    return tracer
-end
-
---// Aimbot Functions
-local function GetClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player == LocalPlayer then continue end
-        if Aimbot.Settings.TeamCheck and IsTeammate(player) then continue end
-        if Aimbot.Settings.AliveCheck and not IsAlive(player) then continue end
-        
-        local character = GetCharacter(player)
-        if not character then continue end
-        
-        local part = character:FindFirstChild(Aimbot.Settings.TargetPart)
-        if not part then continue end
-        
-        local position, visible = GetPartPosition(part)
-        if not visible then continue end
-        
-        local distance = (UserInputService:GetMouseLocation() - position).Magnitude
-        if distance < shortestDistance and distance <= Aimbot.Settings.FieldOfView then
-            closestPlayer = player
-            shortestDistance = distance
-        end
-    end
-    
-    return closestPlayer
-end
-
-local function AimAt(player)
-    if not player then return end
-    
-    local character = GetCharacter(player)
-    if not character then return end
-    
-    local part = character:FindFirstChild(Aimbot.Settings.TargetPart)
-    if not part then return end
-    
-    local position = Camera:WorldToViewportPoint(part.Position)
-    local mousePos = UserInputService:GetMouseLocation()
-    local aimDelta = Vector2.new(
-        (position.X - mousePos.X) * Aimbot.Settings.Sensitivity,
-        (position.Y - mousePos.Y) * Aimbot.Settings.Sensitivity
-    )
-    
-    mousemoverel(aimDelta.X, aimDelta.Y)
-end
-
 --// Initialize Functions
 local function InitializeESP()
     RunService.RenderStepped:Connect(function()
@@ -199,8 +62,8 @@ local function InitializeESP()
             if ESP.Settings.TeamCheck and IsTeammate(player) then continue end
             if ESP.Settings.AliveCheck and not IsAlive(player) then continue end
             
-            DrawBox(player)
-            DrawTracer(player)
+            ESP.DrawBox(player)
+            ESP.DrawTracer(player)
         end
     end)
 end
@@ -223,9 +86,9 @@ local function InitializeAimbot()
     RunService.RenderStepped:Connect(function()
         if not Aimbot.Settings.Enabled or not isAiming then return end
         
-        local target = GetClosestPlayer()
+        local target = Aimbot.GetClosestPlayer()
         if target then
-            AimAt(target)
+            Aimbot.AimAt(target)
         end
     end)
 end
