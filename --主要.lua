@@ -288,20 +288,9 @@ local function CreateUI()
     TitleBar.BorderSizePixel = 0
     TitleBar.Parent = MainFrame
     
-    -- 添加关闭按钮
-    local CloseButton = Instance.new("TextButton")
-    CloseButton.Size = UDim2.new(0, 30, 0, 30)
-    CloseButton.Position = UDim2.new(1, -35, 0, 5)
-    CloseButton.BackgroundTransparency = 1
-    CloseButton.Text = "×"
-    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CloseButton.TextSize = 24
-    CloseButton.Font = Enum.Font.SourceSansBold
-    CloseButton.Parent = TitleBar
-    
     local Title = Instance.new("TextLabel")
     Title.Name = "Title"
-    Title.Size = UDim2.new(1, -50, 1, 0)  -- 调整大小以适应关闭按钮
+    Title.Size = UDim2.new(1, -10, 1, 0)
     Title.Position = UDim2.new(0, 10, 0, 0)
     Title.BackgroundTransparency = 1
     Title.Text = "Aimbot Settings"
@@ -311,6 +300,21 @@ local function CreateUI()
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = TitleBar
     
+    -- 添加关闭按钮（移到右下角）
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 40, 0, 40)
+    CloseButton.Position = UDim2.new(1, -50, 1, -50)  -- 右下角位置
+    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
+    CloseButton.Text = "×"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.TextSize = 24
+    CloseButton.Font = Enum.Font.SourceSansBold
+    CloseButton.Parent = MainFrame
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 20)
+    CloseCorner.Parent = CloseButton
+    
     local Content = Instance.new("Frame")
     Content.Name = "Content"
     Content.Size = UDim2.new(1, -20, 1, -60)
@@ -318,10 +322,40 @@ local function CreateUI()
     Content.BackgroundTransparency = 1
     Content.Parent = MainFrame
     
+    -- Add Aimbot Toggle
+    local AimbotFrame = Instance.new("Frame")
+    AimbotFrame.Name = "AimbotFrame"
+    AimbotFrame.Size = UDim2.new(1, 0, 0, 30)
+    AimbotFrame.BackgroundTransparency = 1
+    AimbotFrame.Parent = Content
+    
+    local AimbotLabel = Instance.new("TextLabel")
+    AimbotLabel.Name = "AimbotLabel"
+    AimbotLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    AimbotLabel.BackgroundTransparency = 1
+    AimbotLabel.Text = "Aimbot"
+    AimbotLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AimbotLabel.TextSize = 14
+    AimbotLabel.Font = Enum.Font.SourceSans
+    AimbotLabel.TextXAlignment = Enum.TextXAlignment.Left
+    AimbotLabel.Parent = AimbotFrame
+    
+    local AimbotButton = Instance.new("TextButton")
+    AimbotButton.Name = "AimbotButton"
+    AimbotButton.Size = UDim2.new(0.3, -10, 1, -10)
+    AimbotButton.Position = UDim2.new(0.7, 0, 0, 5)
+    AimbotButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
+    AimbotButton.Text = "OFF"
+    AimbotButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AimbotButton.TextSize = 14
+    AimbotButton.Font = Enum.Font.SourceSansBold
+    AimbotButton.Parent = AimbotFrame
+    
     -- Add Team Check Toggle
     local TeamCheckFrame = Instance.new("Frame")
     TeamCheckFrame.Name = "TeamCheckFrame"
     TeamCheckFrame.Size = UDim2.new(1, 0, 0, 30)
+    TeamCheckFrame.Position = UDim2.new(0, 0, 0, 40)
     TeamCheckFrame.BackgroundTransparency = 1
     TeamCheckFrame.Parent = Content
     
@@ -347,28 +381,11 @@ local function CreateUI()
     TeamCheckButton.Font = Enum.Font.SourceSansBold
     TeamCheckButton.Parent = TeamCheckFrame
     
-    -- Add Team Check Toggle Functionality
-    local function UpdateTeamCheckButton()
-        if Environment.Settings.TeamCheck then
-            TeamCheckButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-            TeamCheckButton.Text = "ON"
-        else
-            TeamCheckButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
-            TeamCheckButton.Text = "OFF"
-        end
-    end
-    
-    TeamCheckButton.MouseButton1Click:Connect(function()
-        Environment.Settings.TeamCheck = not Environment.Settings.TeamCheck
-        _G.TeamCheck = Environment.Settings.TeamCheck -- 同步ESP的团队检查设置
-        UpdateTeamCheckButton()
-    end)
-    
     -- Add ESP Toggle
     local ESPFrame = Instance.new("Frame")
     ESPFrame.Name = "ESPFrame"
     ESPFrame.Size = UDim2.new(1, 0, 0, 30)
-    ESPFrame.Position = UDim2.new(0, 0, 0, 40)
+    ESPFrame.Position = UDim2.new(0, 0, 0, 80)
     ESPFrame.BackgroundTransparency = 1
     ESPFrame.Parent = Content
     
@@ -393,22 +410,6 @@ local function CreateUI()
     ESPButton.TextSize = 14
     ESPButton.Font = Enum.Font.SourceSansBold
     ESPButton.Parent = ESPFrame
-    
-    -- Add ESP Toggle Functionality
-    local function UpdateESPButton()
-        if _G.ESPVisible then
-            ESPButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-            ESPButton.Text = "ON"
-        else
-            ESPButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
-            ESPButton.Text = "OFF"
-        end
-    end
-    
-    ESPButton.MouseButton1Click:Connect(function()
-        _G.ESPVisible = not _G.ESPVisible
-        UpdateESPButton()
-    end)
     
     -- 让 ToggleButton 可拖动
     local toggleDragging
@@ -456,6 +457,60 @@ local function CreateUI()
     CloseButton.MouseButton1Click:Connect(function()
         MainFrame.Visible = false
     end)
+    
+    -- Add Aimbot Toggle Functionality
+    local function UpdateAimbotButton()
+        if Environment.Settings.Enabled then
+            AimbotButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            AimbotButton.Text = "ON"
+        else
+            AimbotButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
+            AimbotButton.Text = "OFF"
+        end
+    end
+    
+    AimbotButton.MouseButton1Click:Connect(function()
+        Environment.Settings.Enabled = not Environment.Settings.Enabled
+        UpdateAimbotButton()
+    end)
+    
+    -- Add Team Check Toggle Functionality
+    local function UpdateTeamCheckButton()
+        if Environment.Settings.TeamCheck then
+            TeamCheckButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            TeamCheckButton.Text = "ON"
+        else
+            TeamCheckButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
+            TeamCheckButton.Text = "OFF"
+        end
+    end
+    
+    TeamCheckButton.MouseButton1Click:Connect(function()
+        Environment.Settings.TeamCheck = not Environment.Settings.TeamCheck
+        _G.TeamCheck = Environment.Settings.TeamCheck -- 同步ESP的团队检查设置
+        UpdateTeamCheckButton()
+    end)
+    
+    -- Add ESP Toggle Functionality
+    local function UpdateESPButton()
+        if _G.ESPVisible then
+            ESPButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            ESPButton.Text = "ON"
+        else
+            ESPButton.BackgroundColor3 = Color3.fromRGB(255, 80, 10)
+            ESPButton.Text = "OFF"
+        end
+    end
+    
+    ESPButton.MouseButton1Click:Connect(function()
+        _G.ESPVisible = not _G.ESPVisible
+        UpdateESPButton()
+    end)
+    
+    -- Initialize button states
+    UpdateAimbotButton()
+    UpdateTeamCheckButton()
+    UpdateESPButton()
     
     -- Parent the UI
     pcall(function()
