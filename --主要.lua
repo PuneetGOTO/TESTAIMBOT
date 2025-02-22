@@ -69,30 +69,36 @@ local function CancelLock()
 	Environment.FOVCircle.Color = Environment.FOVSettings.Color
 end
 
-local function GetClosestPlayer()
-	if not Environment.Locked then
-		RequiredDistance = (Environment.FOVSettings.Enabled and Environment.FOVSettings.Amount or 2000)
+local function GetClosestPlayerToCursor()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for i, v in pairs(game:GetService("Players"):GetPlayers()) do
+        if v ~= game:GetService("Players").LocalPlayer then
+            if v.Character and v.Character:FindFirstChild(Environment.Settings.AimPart) then
+                if Environment.Settings.TeamCheck and v.TeamColor == game:GetService("Players").LocalPlayer.TeamColor then
+                    -- Skip teammates
+                else
+                    local pos = camera:WorldToViewportPoint(v.Character[Environment.Settings.AimPart].Position)
+                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).magnitude
+                    
+                    if magnitude < shortestDistance then
+                        closestPlayer = v
+                        shortestDistance = magnitude
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
 
-		for _, v in next, Players:GetPlayers() do
-			if v ~= LocalPlayer then
-				if v.Character and v.Character:FindFirstChild(Environment.Settings.LockPart) and v.Character:FindFirstChildOfClass("Humanoid") then
-					if Environment.Settings.TeamCheck and v.Team == LocalPlayer.Team then continue end
-					if Environment.Settings.AliveCheck and v.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then continue end
-					if Environment.Settings.WallCheck and #(Camera:GetPartsObscuringTarget({v.Character[Environment.Settings.LockPart].Position}, v.Character:GetDescendants())) > 0 then continue end
-
-					local Vector, OnScreen = Camera:WorldToViewportPoint(v.Character[Environment.Settings.LockPart].Position)
-					local Distance = (Vector2(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2(Vector.X, Vector.Y)).Magnitude
-
-					if Distance < RequiredDistance and OnScreen then
-						RequiredDistance = Distance
-						Environment.Locked = v
-					end
-				end
-			end
-		end
-	elseif (Vector2(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2(Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position).X, Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position).Y)).Magnitude > RequiredDistance then
-		CancelLock()
-	end
+local function AimAt(targetPart)
+    local targetPos = camera:WorldToScreenPoint(targetPart.Position)
+    local mousePos = Vector2.new(mouse.X, mouse.Y)
+    local movePos = Vector2.new((targetPos.X - mousePos.X) * Environment.Settings.Sensitivity, (targetPos.Y - mousePos.Y) * Environment.Settings.Sensitivity)
+    mousemoverel(movePos.X, movePos.Y)
 end
 
 --// Typing Check
@@ -123,25 +129,9 @@ local function Load()
 		end
 
 		if Running and Environment.Settings.Enabled then
-			GetClosestPlayer()
-
-			if Environment.Locked then
-				if Environment.Settings.ThirdPerson then
-					Environment.Settings.ThirdPersonSensitivity = mathclamp(Environment.Settings.ThirdPersonSensitivity, 0.1, 5)
-
-					local Vector = Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position)
-					mousemoverel((Vector.X - UserInputService:GetMouseLocation().X) * Environment.Settings.ThirdPersonSensitivity, (Vector.Y - UserInputService:GetMouseLocation().Y) * Environment.Settings.ThirdPersonSensitivity)
-				else
-					if Environment.Settings.Sensitivity > 0 then
-						Animation = TweenService:Create(Camera, TweenInfo.new(Environment.Settings.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)})
-						Animation:Play()
-					else
-						Camera.CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)
-					end
-				end
-
-			Environment.FOVCircle.Color = Environment.FOVSettings.LockedColor
-
+			local player = GetClosestPlayerToCursor()
+			if player and player.Character and player.Character:FindFirstChild(Environment.Settings.AimPart) then
+				AimAt(player.Character[Environment.Settings.AimPart])
 			end
 		end
 	end)
@@ -211,7 +201,7 @@ function Environment.Functions:Exit()
 	getgenv().Aimbot.Functions = nil
 	getgenv().Aimbot = nil
 	
-	Load = nil; GetClosestPlayer = nil; CancelLock = nil
+	Load = nil; GetClosestPlayerToCursor = nil; AimAt = nil
 end
 
 function Environment.Functions:Restart()
