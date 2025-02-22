@@ -293,14 +293,26 @@ local function CreateUI()
     Title.Size = UDim2.new(1, -10, 1, 0)
     Title.Position = UDim2.new(0, 10, 0, 0)
     Title.BackgroundTransparency = 1
-    Title.Text = "Aimbot Settings"
+    Title.Text = "狗桂"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextSize = 18
     Title.Font = Enum.Font.SourceSansBold
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = TitleBar
     
-    -- 添加关闭按钮（移到右下角）
+    -- 添加版本标签
+    local VersionLabel = Instance.new("TextLabel")
+    VersionLabel.Name = "VersionLabel"
+    VersionLabel.Size = UDim2.new(0, 100, 1, 0)
+    VersionLabel.Position = UDim2.new(1, -110, 0, 0)
+    VersionLabel.BackgroundTransparency = 1
+    VersionLabel.Text = "v1.0"
+    VersionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    VersionLabel.TextSize = 14
+    VersionLabel.Font = Enum.Font.SourceSans
+    VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
+    VersionLabel.Parent = TitleBar
+    
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 40, 0, 40)
     CloseButton.Position = UDim2.new(1, -50, 1, -50)  -- 右下角位置
